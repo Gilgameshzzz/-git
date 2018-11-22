@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>3D 棱柱 - 鼠标事件&选中样式 & 带光照效果</title>
+    <link href="https://a.amap.com/Loca/static/manual/example/style/demo.css" rel="stylesheet">
+    <style>
+        html,
+        body,
+        #container {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #map-features .input-item {
+            height: 2rem;
+        }
+    </style>
+</head>
+<body>
+<div id="container" class="container">
+</div>
+<div class="input-card" style="width:19rem">
+    <h4>设置地图显示要素（Features）</h4>
+    <div id="map-features">
+      <div class="input-item">
+        <input type='checkbox' name='mapStyle' value='bg' checked>
+        <span class="input-text">区域面（bg）</span>
+      </div>
+      <div class="input-item">
+        <input type='checkbox' name='mapStyle' value='road' checked>
+        <span class="input-text">道路（road）</span>
+      </div>
+      <div class="input-item">
+        <input type='checkbox' name='mapStyle' value='building' checked>
+        <span class="input-text">建筑物（building）</span>
+      </div>
+      <div class="input-item">
+        <input type='checkbox' name='mapStyle' value='point' checked>
+        <span class="input-text">标注（point）</span>
+      </div>
+    </div>
+    </div>
+<!--<script src="./script/loca.js"></script>-->
+ <script src="https://cache.amap.com/lbs/static/es5.min.js"></script>
+<script src="https://webapi.amap.com/loca?v=1.2.0&key=36957fce2131c9571666ad2bed290d56"></script>
+<script src="house_gps.js"></script>
+<script src="https://a.amap.com/Loca/static/manual/example/script/demo.js"></script>
+<script>
+        //初始化地图
+    var map = Loca.create('container', {
+        resizeEnable: true, //是否监控地图容器尺寸变化
+        mapStyle: 'amap://styles/7c16a8c03d1836f59f14eed3e60f8adf',
+        pitch: 50,
+        zoom: 10,
+        center: [104.041687,30.700874],
+        features: ['bg', 'road' ,'building', 'point'],
+    });
+
+    //设置地图显示要素
+    function setMapFeatures() {
+      var features = [];
+      var inputs = document.querySelectorAll("#map-features input");
+      inputs.forEach(function(input) {
+        if (input.checked) {
+          features.push(input.value);
+        }
+      });
+      map.setFeatures(features);
+    }
+
+      //绑定checkbox点击事件
+    var inputs = document.querySelectorAll("#map-features input");
+    inputs.forEach(function(checkbox) {
+      checkbox.onclick = setMapFeatures;
+    });
+
+    var layer = Loca.visualLayer({
+        eventSupport: true,
+        container: map,
+        type: 'point',
+        // 棱柱类型仅 3D 模式下支持。
+        shape: 'prism',
+        // 设定棱柱体顶点数量
+        vertex: 4
+    });
+
+    var list = heatGrid.map(function (value) {
+        var val = value.split('$');
+        return {
+            coord: val[1],
+            value: +val[0]
+        }
+    });
+
+    layer.setData(list.slice(0, 5000), {
+        lnglat: 'coord'
+    });
+
+    var colors = [
+        '#2c7bb6',
+        '#abd9e9',
+        '#ffffbf',
+        '#fdae61',
+        '#d7191c'
+    ];
+
+    layer.setOptions({
+        // 单位米
+        unit: 'meter',
+        light: {
+            // 环境光
+            ambient: {
+                // 光照颜色
+                color: '#ffffff',
+                // 光照强度，范围 [0, 1]
+                intensity: 0.5
+            },
+            // 平行光
+            directional: {
+                color: '#ffffff',
+                // 光照方向，是指从地面原点起，光指向的方向。
+                // 数组分别表示 X 轴、Y 轴、Z 轴。
+                // 其中 X 正向朝东、Y 正向朝南、Z 正向朝地下。
+                direction: [1, -1.5, 2],
+                intensity: 0.6
+            }
+        },
+        style: {
+            // 正多边形半径
+            radius: 500,
+            height: {
+                key: 'value',
+                value: [0, 50000]
+            },
+            // 顶边颜色
+            color: {
+                key: 'value',
+                scale: 'quantile',
+                value: colors
+            },
+            opacity: 0.9,
+            // 旋转角度，单位弧度
+            rotate: Math.PI / 180 * 45
+        },
+       selectStyle: {
+           color: '#fcff19',
+           opacity: 0.9
+       }
+    });
+
+    layer.on('mousemove', (ev) => {
+        openInfoWin(map.getMap(), ev.originalEvent, {
+            '位置': ev.rawData.coord,
+            '热度': ev.rawData.value
+        });
+    });
+
+    layer.render();
+
+</script>
+</body>
+</html>
